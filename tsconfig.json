@@ -1,32 +1,26 @@
 {
-    "include": [
-        "NetscriptDefinitions.d.ts",
-        "types.d.ts",
-        "global.d.ts",
-        "src/**/*"
-    ],
-    "compilerOptions": {
-        "module": "esnext",
-        "target": "esnext",
-        "moduleResolution": "node",
-        "noImplicitReturns": true,
-        "noImplicitThis": true,
-        "esModuleInterop": true,
-        "inlineSourceMap": true,
-        "strict": true,
-        "rootDir": "src/",
-        "outDir": "dist/",
-        "baseUrl": "src/",
-        "paths": {
-            "/*": [
-                "*"
-            ],
-            "@ns": [
-                "../NetscriptDefinitions.d.ts"
-            ],
-            "@types": [
-                "../types.d.ts"
-            ]
-        }
+  "include": [
+    "NetscriptDefinitions.d.ts",
+    "globals.d.ts",
+    "src/**/*",
+    ".eslintrc.js"
+  ],
+  "compilerOptions": {
+    "module": "esnext",
+    "target": "esnext",
+    "moduleResolution": "node",
+    "noImplicitReturns": true,
+    "noImplicitThis": true,
+    "esModuleInterop": true,
+    "inlineSourceMap": true,
+    "strict": true,
+    "rootDir": "src/",
+    "outDir": "dist/",
+    "baseUrl": "src/",
+    "paths": {
+      "/*": ["*"],
+      "@ns": ["../NetscriptDefinitions.d.ts"],
+      "@types": ["../types.d.ts"]
     }
+  }
 }

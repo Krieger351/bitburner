@@ -1,3 +1,6 @@
-import type {NS} from "@ns";
+import type { NS } from "@ns";
 
-export const areScriptsRunning = async (ns: NS, target: string): Promise<boolean> => ns.getServerUsedRam(target) > 0;
+export const areScriptsRunning = async (
+  ns: NS,
+  target: string
+): Promise<boolean> => (await ns.getServerUsedRam(target)) > 0;

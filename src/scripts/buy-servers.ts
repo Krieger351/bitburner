@@ -1,58 +1,99 @@
-import type {NS} from "@ns";
+import type { NS } from "@ns";
+
+const getServerPrices = (ns: NS): [number, number][] => {
+  const prices: [number, number][] = [];
+  const upperBound = Math.log2(ns.getPurchasedServerMaxRam());
+  for (let i = 3; i <= upperBound; i++) {
+    const ram = Math.pow(2, i);
+    prices.push([ram, ns.getPurchasedServerCost(ram)]);
+  }
+  return prices;
+};
+
+const getBestRam = (currentMoney: number, serverPrices: [number, number][]) => {
+  for (const [ram, serverPrice] of serverPrices) {
+    if (serverPrice < currentMoney) {
+      return ram;
+    }
+  }
+  return -1;
+};
 
 const buyServers = async (ns: NS): Promise<void> => {
-	ns.print("Buy: Starting");
-	const ram = 8;
-	const buyServer = async () => {
-		ns.print("Buy: Checking money");
-		const serverCost = await ns.getPurchasedServerCost(ram);
-		const currentMoney = await ns.getServerMoneyAvailable("home");
-		if (currentMoney > serverCost) {
-			const servername = await ns.purchaseServer("drone", ram)
-			ns.print(`Buy: Purchased ${servername} with ${ram}GB of ram`);
-		} else {
-			await ns.sleep(60000);
-		}
-	}
+  ns.print("Buy: Starting");
+  const minimumRam = 8;
+  const serverPrices = getServerPrices(ns);
+  const buyServer = async () => {
+    ns.print("Buy: Checking money");
+    const currentMoney = await ns.getServerMoneyAvailable("home");
+    const bestRam = getBestRam(currentMoney, serverPrices);
 
-	while (await ns.getPurchasedServerLimit() > (await ns.getPurchasedServers()).length) {
-		await buyServer();
-	}
-}
+    if (bestRam > minimumRam) {
+      const servername = await ns.purchaseServer("drone", bestRam);
+      ns.print(`Buy: Purchased ${servername} with ${bestRam}GB of ram`);
+    } else {
+      await ns.sleep(60_000);
+    }
+  };
 
-const findSmallestServer = (ns: NS, servers: string[]): string => servers.reduce((smallestServer, currentServer) =>
-	ns.getServerMaxRam(smallestServer) < ns.getServerMaxRam(currentServer) ? smallestServer : currentServer
-)
+  while (ns.getPurchasedServerLimit() > ns.getPurchasedServers().length) {
+    await buyServer();
+  }
+};
+
+const findSmallestServer = (ns: NS, servers: string[]): string => {
+  let [smallestServer] = servers;
+  for (const currentServer of servers) {
+    if (
+      ns.getServerMaxRam(currentServer) < ns.getServerMaxRam(smallestServer)
+    ) {
+      smallestServer = currentServer;
+    }
+  }
+  return smallestServer;
+};
 
 const replaceServers = async (ns: NS): Promise<void> => {
-	ns.print("Replace: Starting");
-	const replaceServer = async () => {
-		const servers = await ns.getPurchasedServers();
-		const smallestServer = findSmallestServer(ns, servers);
-		const smallestRam = ns.getServerMaxRam(smallestServer);
-		ns.print(`Replace: The smallest server is ${smallestServer} with ${smallestRam}GB of ram`)
-		const nextMinimumRam = smallestRam * 2;
-		const serverCost = await ns.getPurchasedServerCost(nextMinimumRam);
-		const currentMoney = await ns.getServerMoneyAvailable("home");
+  ns.print("Replace: Starting");
+  const serverPrices = getServerPrices(ns);
+  const replaceServer = async () => {
+    const servers = await ns.getPurchasedServers();
+    const smallestServer = findSmallestServer(ns, servers);
+    const smallestRam = ns.getServerMaxRam(smallestServer);
+    ns.print(
+      `Replace: The smallest server is ${smallestServer} with ${smallestRam}GB of ram`
+    );
+    const currentMoney = await ns.getServerMoneyAvailable("home");
+    const bestRam = getBestRam(currentMoney, serverPrices);
 
-		ns.print(`Replace: The next server will have ${nextMinimumRam}GB of ram and will cost ${serverCost}`)
-		if (currentMoney > serverCost) {
-			ns.killall(smallestServer);
-			ns.deleteServer(smallestServer);
-			const replacement = ns.purchaseServer("drone", nextMinimumRam);
-			ns.print(`Buy: Replaced ${smallestServer} with ${replacement}`);
-		} else {
-			await ns.sleep(60000)
-		}
-	}
+    if (bestRam > smallestRam) {
+      ns.killall(smallestServer);
+      ns.deleteServer(smallestServer);
+      const replacement = ns.purchaseServer("drone", bestRam);
+      ns.print(
+        `Buy: Replaced ${smallestServer} with ${replacement} @ ${bestRam}GB`
+      );
+    } else {
+      await ns.sleep(60_000);
+    }
+  };
 
-	while (true) {
-		await replaceServer();
-	}
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    await replaceServer();
+  }
+};
+
+export async function main(ns: NS): Promise<void> {
+  ns.disableLog("ALL");
+  await buyServers(ns);
+  await replaceServers(ns);
 }
 
-export async function main(ns: NS) {
-	ns.disableLog("ALL");
-	await buyServers(ns);
-	await replaceServers(ns);
-}
+/*
+loop
+  if currentServer < max servers
+    buy most efficient servers possible
+  else 
+    replace worst server with best possible server
+    */
