@@ -5,7 +5,7 @@ const getServerPrices = (ns: NS): [number, number][] => {
   const upperBound = Math.log2(ns.getPurchasedServerMaxRam());
   for (let i = 3; i <= upperBound; i++) {
     const ram = Math.pow(2, i);
-    prices.push([ram, ns.getPurchasedServerCost(ram)]);
+    prices.unshift([ram, ns.getPurchasedServerCost(ram)]);
   }
   return prices;
 };
@@ -27,8 +27,7 @@ const buyServers = async (ns: NS): Promise<void> => {
     ns.print("Buy: Checking money");
     const currentMoney = await ns.getServerMoneyAvailable("home");
     const bestRam = getBestRam(currentMoney, serverPrices);
-
-    if (bestRam > minimumRam) {
+    if (bestRam >= minimumRam) {
       const servername = await ns.purchaseServer("drone", bestRam);
       ns.print(`Buy: Purchased ${servername} with ${bestRam}GB of ram`);
     } else {
@@ -60,12 +59,12 @@ const replaceServers = async (ns: NS): Promise<void> => {
     const servers = await ns.getPurchasedServers();
     const smallestServer = findSmallestServer(ns, servers);
     const smallestRam = ns.getServerMaxRam(smallestServer);
+
+    const currentMoney = await ns.getServerMoneyAvailable("home");
+    const bestRam = getBestRam(currentMoney, serverPrices);
     ns.print(
       `Replace: The smallest server is ${smallestServer} with ${smallestRam}GB of ram`
     );
-    const currentMoney = await ns.getServerMoneyAvailable("home");
-    const bestRam = getBestRam(currentMoney, serverPrices);
-
     if (bestRam > smallestRam) {
       ns.killall(smallestServer);
       ns.deleteServer(smallestServer);
@@ -89,11 +88,3 @@ export async function main(ns: NS): Promise<void> {
   await buyServers(ns);
   await replaceServers(ns);
 }
-
-/*
-loop
-  if currentServer < max servers
-    buy most efficient servers possible
-  else 
-    replace worst server with best possible server
-    */

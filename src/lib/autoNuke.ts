@@ -26,5 +26,4 @@ export const autoNuke = async (ns: NS, target: string): Promise<boolean> => {
   await ns.nuke(target);
   ns.print(`Gained root on ${target}`);
   return true;
-  // ns.installBackdoor(target);
 };
